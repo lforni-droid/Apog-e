@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Apogée</title>
-<meta name="theme-color" content="#131A16">
+<meta name="theme-color" content="#F7F2E7">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icone.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icone-192.png">
@@ -15,16 +15,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --verre:#131A16;
-    --verre-clair:#1C2621;
-    --verre-bord:#2B3831;
-    --craie:#EDE7DA;
-    --craie-faible:#8B968D;
+    /* --verre : les fonds  |  --craie : le texte */
+    --verre:#F7F2E7;
+    --verre-clair:#FFFCF5;
+    --verre-bord:#DFD5C1;
+    --craie:#24302A;
+    --craie-faible:#77806F;
     --lie:#8C2F39;
-    --or:#C9A227;
-    --mur-attendre:#4F7EA8;
-    --mur-point:#6FA860;
-    --mur-urgent:#C4553F;
+    --or:#9A7A15;
+    --mur-attendre:#3A6488;
+    --mur-point:#4E7F42;
+    --mur-urgent:#B04227;
+    --ombre:0 1px 2px rgba(36,48,42,.05);
     --r:10px;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -65,7 +67,7 @@
 
   /* ---- mur de maturité (signature) ---- */
   .mur{display:flex;gap:3px;height:34px;margin-top:14px;align-items:flex-end}
-  .mur i{flex:1 1 auto;min-width:2px;max-width:9px;border-radius:2px;display:block;opacity:.85}
+  .mur i{flex:1 1 auto;min-width:2px;max-width:9px;border-radius:2px;display:block}
   .mur-legende{display:flex;gap:14px;margin-top:8px;font-size:11px;color:var(--craie-faible)}
   .mur-legende span{display:flex;align-items:center;gap:5px}
   .pastille{width:7px;height:7px;border-radius:50%;display:inline-block;flex:none}
@@ -118,7 +120,7 @@
   .apercu{width:100%;border-radius:var(--r);margin-top:12px;display:none;border:1px solid var(--verre-bord)}
 
   /* ---- cartes accord ---- */
-  .carte{background:var(--verre-clair);border:1px solid var(--verre-bord);border-radius:var(--r);padding:15px;margin-bottom:12px}
+  .carte{background:var(--verre-clair);border:1px solid var(--verre-bord);border-radius:var(--r);padding:15px;margin-bottom:12px;box-shadow:var(--ombre)}
   .carte h3{font-size:18px;font-weight:500}
   .carte .annee{color:var(--or);font-family:"IBM Plex Mono",monospace}
   .carte p{margin:9px 0 0;font-size:14px}
@@ -131,7 +133,7 @@
   .etat.err{color:var(--mur-urgent)}
 
   /* ---- fiche ---- */
-  .voile{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40;display:none}
+  .voile{position:fixed;inset:0;background:rgba(36,48,42,.32);z-index:40;display:none}
   .voile.ouvert{display:block}
   .fiche{
     position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--verre-clair);
@@ -192,10 +194,22 @@
       Indiquez votre adresse : vous recevrez un lien de connexion, sans mot de passe à retenir.</p>
     <form id="form-connexion" autocomplete="on">
       <label for="email">Adresse e-mail</label>
-      <input id="email" type="email" required placeholder="vous@exemple.fr">
-      <div style="margin-top:16px"><button class="btn" type="submit">Recevoir le lien</button></div>
+      <input id="email" name="email" type="email" required autocomplete="username" placeholder="vous@exemple.fr">
+
+      <label for="mdp">Mot de passe</label>
+      <input id="mdp" name="password" type="password" required autocomplete="current-password" minlength="8" placeholder="8 caractères minimum">
+
+      <div style="margin-top:16px">
+        <button class="btn" type="submit" id="btn-connexion">Se connecter</button>
+      </div>
     </form>
+
     <div class="etat" id="etat-connexion"></div>
+
+    <div style="margin-top:26px;padding-top:16px;border-top:1px solid var(--verre-bord);display:flex;flex-direction:column;gap:10px">
+      <button class="btn creux" id="btn-inscription">Créer un compte</button>
+      <button class="btn creux" id="btn-lien">Recevoir plutôt un lien par e-mail</button>
+    </div>
   </div>
 </main>
 
@@ -390,19 +404,78 @@ function majSession(){
   document.getElementById('ecran-connexion').style.display = connecte ? 'none' : 'block';
   document.getElementById('appli').style.display = connecte ? 'block' : 'none';
   document.getElementById('barre-nav').style.display = connecte ? 'flex' : 'none';
-  if(connecte) charger(); else { cave = []; }
+  if(connecte){ document.getElementById('mdp').value=''; charger(); } else { cave = []; }
 }
 
+const MEM_EMAIL = 'apogee:email';
+try{
+  const m = localStorage.getItem(MEM_EMAIL);
+  if(m) document.getElementById('email').value = m;
+}catch(e){}
+
+function champsConnexion(){
+  return {
+    email: document.getElementById('email').value.trim(),
+    mdp:   document.getElementById('mdp').value,
+    etat:  document.getElementById('etat-connexion')
+  };
+}
+function retenir(email){ try{ localStorage.setItem(MEM_EMAIL, email); }catch(e){} }
+
+/* --- Connexion par mot de passe --- */
 document.getElementById('form-connexion').onsubmit = async (e)=>{
   e.preventDefault();
-  const email = document.getElementById('email').value.trim();
-  const etat = document.getElementById('etat-connexion');
+  const {email, mdp, etat} = champsConnexion();
+  const btn = document.getElementById('btn-connexion');
+  btn.disabled = true; etat.className='etat'; etat.textContent='Connexion…';
+  const { error } = await sb.auth.signInWithPassword({ email, password: mdp });
+  btn.disabled = false;
+  if(error){
+    etat.className='etat err';
+    etat.textContent = /invalid/i.test(error.message)
+      ? "Adresse ou mot de passe incorrect. Si c'est votre première visite, créez un compte."
+      : "Connexion impossible. Réessayez.";
+    return;
+  }
+  retenir(email);
+  etat.textContent='';
+};
+
+/* --- Création de compte --- */
+document.getElementById('btn-inscription').onclick = async ()=>{
+  const {email, mdp, etat} = champsConnexion();
+  if(!email || mdp.length < 8){
+    etat.className='etat err';
+    etat.textContent='Renseignez une adresse et un mot de passe de 8 caractères minimum.';
+    return;
+  }
+  etat.className='etat'; etat.textContent='Création du compte…';
+  const { data, error } = await sb.auth.signUp({
+    email, password: mdp, options:{ emailRedirectTo: window.location.origin }
+  });
+  if(error){
+    etat.className='etat err';
+    etat.textContent = /already/i.test(error.message)
+      ? "Ce compte existe déjà. Utilisez « Se connecter »."
+      : "Création impossible : " + error.message;
+    return;
+  }
+  retenir(email);
+  etat.textContent = data.session
+    ? ''
+    : "Compte créé. Confirmez votre adresse via le mail reçu, puis connectez-vous.";
+};
+
+/* --- Repli : lien par e-mail --- */
+document.getElementById('btn-lien').onclick = async ()=>{
+  const {email, etat} = champsConnexion();
+  if(!email){ etat.className='etat err'; etat.textContent="Renseignez d'abord votre adresse."; return; }
   etat.className='etat'; etat.textContent='Envoi du lien…';
   const { error } = await sb.auth.signInWithOtp({
     email, options:{ emailRedirectTo: window.location.origin }
   });
   if(error){ etat.className='etat err'; etat.textContent="Envoi impossible. Vérifiez l'adresse."; }
-  else etat.textContent='Lien envoyé. Ouvrez votre boîte mail depuis cet appareil.';
+  else { retenir(email); etat.textContent='Lien envoyé. Ouvrez-le depuis cet appareil.'; }
 };
 
 /* ---------- stockage Supabase ---------- */
@@ -574,8 +647,10 @@ async function demander(messages){
     },
     body: JSON.stringify({ messages })
   });
-  if(!r.ok) throw new Error("réseau");
   const d = await r.json();
+  if(!r.ok){
+    throw new Error(d && d.error ? d.error : `Erreur ${r.status}`);
+  }
   const t = d.content.filter(i=>i.type==='text').map(i=>i.text).join('\n');
   return JSON.parse(t.replace(/```json|```/g,'').trim());
 }
@@ -612,7 +687,9 @@ Si l'image n'est pas une étiquette de vin lisible, réponds {"erreur":"..."} .`
     document.getElementById('form').style.display='block';
   }catch(err){
     etat.className='etat err';
-    etat.textContent="La lecture a échoué. Saisissez la bouteille à la main.";
+    etat.textContent = "Lecture impossible — " + (err.message || 'erreur inconnue')
+      + ". Vous pouvez saisir la bouteille à la main.";
+    console.error(err);
     videForm(); document.getElementById('form').style.display='block';
   }
   e.target.value='';
@@ -702,7 +779,9 @@ Réponds UNIQUEMENT par un tableau JSON, sans texte autour :
     });
     if(!zone.children.length) etat.textContent='Aucune proposition exploitable. Reformulez le plat.';
   }catch(err){
-    etat.className='etat err'; etat.textContent='La recherche a échoué. Réessayez.';
+    etat.className='etat err';
+    etat.textContent = "Recherche impossible — " + (err.message || 'erreur inconnue');
+    console.error(err);
   }
 };
 
