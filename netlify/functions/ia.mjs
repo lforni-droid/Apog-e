@@ -39,12 +39,20 @@ export default async (req) => {
     return json({ error: "Aucun message" }, 400);
   }
 
+  // --- Contrôle de la clé (le détail n'est jamais renvoyé au navigateur) ---
+  const cle = (process.env.ANTHROPIC_API_KEY || "").trim();
+  console.log("Clé API :",
+    cle ? `longueur ${cle.length}, début « ${cle.slice(0, 14)}… »` : "ABSENTE");
+  if (!cle) {
+    return json({ error: "Clé API absente côté serveur" }, 500);
+  }
+
   try {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "x-api-key": cle,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
