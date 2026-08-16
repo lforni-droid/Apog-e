@@ -337,14 +337,53 @@ let cave = [];
 let filtre = 'tous';
 let session = null;
 
-const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, {
+  auth: { detectSessionInUrl: true, persistSession: true, autoRefreshToken: true }
+});
 
 /* ---------- session ---------- */
 async function demarrer(){
+  const etat = document.getElementById('etat-connexion');
+  const hash = new URLSearchParams(location.hash.slice(1));
+  const req  = new URLSearchParams(location.search);
+
+  // 1. Supabase a renvoyé une erreur explicite
+  const err = hash.get('error_description') || req.get('error_description')
+           || hash.get('error') || req.get('error');
+  if(err){
+    etat.className='etat err';
+    etat.textContent = 'Connexion refusée : ' + decodeURIComponent(err).replace(/\+/g,' ');
+    nettoyerUrl();
+  }
+
+  // 2. Flux PKCE : un code à échanger contre une session
+  const code = req.get('code');
+  if(code){
+    const { error } = await sb.auth.exchangeCodeForSession(code);
+    if(error){
+      etat.className='etat err';
+      etat.textContent = "Le lien n'a pas pu être validé. Il a peut-être déjà été ouvert, ou il a expiré. Demandez-en un nouveau.";
+    }
+    nettoyerUrl();
+  }
+
+  // 3. Récupération de la session
   const { data } = await sb.auth.getSession();
   session = data.session;
+  if(!session && (hash.get('access_token') || code) && !err){
+    etat.className='etat err';
+    etat.textContent = "Le jeton est arrivé mais la session n'a pas pu être ouverte. Vérifiez que l'URL du site est bien déclarée dans Supabase → Authentication → URL Configuration.";
+  }
+  if(session) nettoyerUrl();
   majSession();
-  sb.auth.onAuthStateChange((_e, s)=>{ session = s; majSession(); });
+
+  sb.auth.onAuthStateChange((_e, s)=>{ session = s; if(s) nettoyerUrl(); majSession(); });
+}
+
+function nettoyerUrl(){
+  if(location.hash || location.search){
+    history.replaceState(null, '', location.pathname);
+  }
 }
 function majSession(){
   const connecte = !!session;
